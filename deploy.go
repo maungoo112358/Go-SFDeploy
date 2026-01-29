@@ -35,14 +35,35 @@ func deployProject(config *Config) bool {
 		}
 	}
 
-	fmt.Println("📋 Copying new JAR file...")
-	sourceJar := filepath.Join(config.SourceDir, "ServerExtension.jar")
-	targetJar := filepath.Join(targetExtDir, "ServerExtension.jar")
+	fmt.Println("Copying JAR files...")
+
+	// Copy common JAR to __lib__ folder if configured
+	if config.CommonFile != "" {
+		libDir := filepath.Join(config.TargetDir, "SFS2X", "extensions", "__lib__")
+		if err := os.MkdirAll(libDir, 0755); err != nil {
+			fmt.Printf("Failed to create __lib__ directory: %v\n", err)
+			return false
+		}
+
+		sourceCommonJar := filepath.Join(config.SourceDir, config.CommonFile)
+		targetCommonJar := filepath.Join(libDir, config.CommonFile)
+
+		if err := copyFile(sourceCommonJar, targetCommonJar); err != nil {
+			fmt.Printf("Failed to copy %s: %v\n", config.CommonFile, err)
+			return false
+		}
+		fmt.Printf("Copied: %s -> __lib__/\n", config.CommonFile)
+	}
+
+	// Copy main extension JAR to extension folder
+	sourceJar := filepath.Join(config.SourceDir, config.ExtensionFile)
+	targetJar := filepath.Join(targetExtDir, config.ExtensionFile)
 
 	if err := copyFile(sourceJar, targetJar); err != nil {
-		fmt.Printf("❌ Failed to copy JAR file: %v\n", err)
+		fmt.Printf("Failed to copy %s: %v\n", config.ExtensionFile, err)
 		return false
 	}
+	fmt.Printf("Copied: %s -> %s/\n", config.ExtensionFile, config.ExtensionFolder)
 
 	if len(config.DeployJsonFiles) > 0 {
 		fmt.Printf("📋 Copying %d JSON files...\n", len(config.DeployJsonFiles))

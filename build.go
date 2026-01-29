@@ -10,22 +10,22 @@ import (
 )
 
 func buildProject(config *Config) bool {
-	fmt.Println("🔨 Phase 2: Building Project")
+	fmt.Println("Phase 2: Building Project")
 
 	srcDir := filepath.Join(config.SourceDir, "src")
 	serverLibDir := filepath.Join(config.TargetDir, "SFS2X", "lib")
 
-	fmt.Println("🧹 Cleaning old class files...")
+	fmt.Println("Cleaning old class files...")
 	cleanClassFiles(srcDir)
 
-	fmt.Println("⚙️ Compiling Java files...")
+	fmt.Println("Compiling Java files...")
 	javaFiles := findJavaFiles(srcDir)
 	if len(javaFiles) == 0 {
-		fmt.Println("❌ No Java files found")
+		fmt.Println("No Java files found")
 		return false
 	}
 
-	fmt.Printf("📋 Found %d Java files\n", len(javaFiles))
+	fmt.Printf("Found %d Java files\n", len(javaFiles))
 
 	classpath := buildClasspath(serverLibDir)
 
@@ -41,29 +41,46 @@ func buildProject(config *Config) bool {
 	cmd.Dir = srcDir
 
 	if output, err := cmd.CombinedOutput(); err != nil {
-		fmt.Printf("❌ Compilation failed: %s\n", string(output))
+		fmt.Printf("Compilation failed: %s\n", string(output))
 		return false
 	}
 
-	fmt.Println("✅ Compilation successful")
+	fmt.Println("Compilation successful")
 
-	fmt.Println("📦 Creating JAR file...")
 	jarPath := filepath.Join(config.JavaPath, "jar")
 	if runtime.GOOS == "windows" {
 		jarPath += ".exe"
 	}
 
-	jarFile := filepath.Join(config.SourceDir, "ServerExtension.jar")
+	// Create SpookyCommon.jar from just the common folder
+	if config.CommonFile != "" && config.CommonFolder != "" {
+		fmt.Printf("Creating %s...\n", config.CommonFile)
+		commonJarFile := filepath.Join(config.SourceDir, config.CommonFile)
+		commonDir := filepath.Join(srcDir, config.CommonFolder)
 
-	cmd = exec.Command(jarPath, "cf", jarFile, ".")
+		cmd = exec.Command(jarPath, "cf", commonJarFile, ".")
+		cmd.Dir = commonDir
+
+		if output, err := cmd.CombinedOutput(); err != nil {
+			fmt.Printf("JAR creation failed for %s: %s\n", config.CommonFile, string(output))
+			return false
+		}
+		fmt.Printf("%s created successfully\n", config.CommonFile)
+	}
+
+	// Create main extension JAR from the whole src folder
+	fmt.Printf("Creating %s...\n", config.ExtensionFile)
+	extensionJarFile := filepath.Join(config.SourceDir, config.ExtensionFile)
+
+	cmd = exec.Command(jarPath, "cf", extensionJarFile, ".")
 	cmd.Dir = srcDir
 
 	if output, err := cmd.CombinedOutput(); err != nil {
-		fmt.Printf("❌ JAR creation failed: %s\n", string(output))
+		fmt.Printf("JAR creation failed for %s: %s\n", config.ExtensionFile, string(output))
 		return false
 	}
 
-	fmt.Println("✅ JAR file created successfully")
+	fmt.Printf("%s created successfully\n", config.ExtensionFile)
 	fmt.Println()
 
 	return true
@@ -119,7 +136,7 @@ func buildClasspath(serverLibDir string) string {
 	}
 
 	if len(classpathParts) == 0 {
-		fmt.Printf("⚠️ Warning: No JAR files found in %s\n", serverLibDir)
+		fmt.Printf("Warning: No JAR files found in %s\n", serverLibDir)
 		return "."
 	}
 

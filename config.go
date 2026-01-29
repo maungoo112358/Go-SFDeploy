@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,10 +9,13 @@ import (
 )
 
 type Config struct {
+	JavaPath        string   `json:"java_path"`
 	SourceDir       string   `json:"source_dir"`
 	TargetDir       string   `json:"target_dir"`
 	ExtensionFolder string   `json:"extension_folder"`
-	JavaPath        string   `json:"java_path"`
+	ExtensionFile   string   `json:"extension_file"`
+	CommonFile      string   `json:"common_file"`
+	CommonFolder    string   `json:"common_folder"`
 	JsonSourceDir   string   `json:"json_source_dir"`
 	DeployJsonFiles []string `json:"deploy_json_files"`
 }
@@ -36,108 +38,38 @@ func loadConfig() (Config, bool) {
 	return config, true
 }
 
-func saveConfig(config Config) {
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return
-	}
-
-	os.WriteFile(configFile, data, 0644)
-}
-
 func setupDirectories(config *Config) bool {
-	fmt.Println("📁 Phase 1: Directory Setup")
+	fmt.Println("Phase 1: Directory Setup")
 
-	if savedConfig, exists := loadConfig(); exists {
-		*config = savedConfig
-
-		if validateSourceDir(config.SourceDir) && validateTargetDir(config.TargetDir) {
-			config.JavaPath = findJava11Path()
-			if config.JavaPath == "" {
-				fmt.Println("❌ Java 11 not found")
-				return false
-			}
-
-			fmt.Printf("✅ Source: %s\n", config.SourceDir)
-			fmt.Printf("✅ Target: %s\n", config.TargetDir)
-			fmt.Printf("✅ Extension: %s\n", config.ExtensionFolder)
-			fmt.Printf("✅ Java 11: %s\n", config.JavaPath)
-			fmt.Println()
-			return true
-		}
-		fmt.Println("⚠️ Config paths are no longer valid, please enter new ones")
+	savedConfig, exists := loadConfig()
+	if !exists {
+		fmt.Println("Config file not found: sfdeploy_config.json")
+		return false
 	}
 
-	reader := bufio.NewReader(os.Stdin)
+	*config = savedConfig
 
-	for {
-		fmt.Print("Enter source directory (SmartFox project): ")
-		sourceDir, _ := reader.ReadString('\n')
-		config.SourceDir = strings.TrimSpace(sourceDir)
-
-		if validateSourceDir(config.SourceDir) {
-			fmt.Printf("✅ Valid source directory: %s\n", config.SourceDir)
-			break
-		} else {
-			fmt.Printf("❌ Invalid source directory: %s\n", config.SourceDir)
-			fmt.Println("   Please ensure the directory contains 'src' folder with .java files")
-		}
+	if !validateSourceDir(config.SourceDir) {
+		fmt.Println("Source directory is invalid")
+		return false
 	}
 
-	autoDetectedTarget := findSmartFoxServer()
-	if autoDetectedTarget != "" {
-		fmt.Printf("🔍 Auto-detected SmartFox server: %s\n", autoDetectedTarget)
-		if askYesNo("Do you want to use this SmartFox server installation? (y/n): ") {
-			config.TargetDir = autoDetectedTarget
-			fmt.Printf("✅ Using auto-detected target directory: %s\n", config.TargetDir)
-		} else {
-			config.TargetDir = ""
-		}
-	}
-
-	if config.TargetDir == "" {
-		for {
-			fmt.Print("Enter target directory (SmartFox server): ")
-			targetDir, _ := reader.ReadString('\n')
-			config.TargetDir = strings.TrimSpace(targetDir)
-
-			if validateTargetDir(config.TargetDir) {
-				fmt.Printf("✅ Valid target directory: %s\n", config.TargetDir)
-				break
-			} else {
-				fmt.Printf("❌ Invalid target directory: %s\n", config.TargetDir)
-				fmt.Println("   Please ensure the directory contains 'SFS2X/sfs2x.bat' and 'SFS2X/lib/sfs2x.jar'")
-			}
-		}
-	}
-
-	for {
-		fmt.Print("Enter extension folder name (e.g., SFServer, MyExtension): ")
-		extensionFolder, _ := reader.ReadString('\n')
-		config.ExtensionFolder = strings.TrimSpace(extensionFolder)
-
-		if config.ExtensionFolder != "" && !strings.Contains(config.ExtensionFolder, ":") && !strings.Contains(config.ExtensionFolder, "\\") && !strings.Contains(config.ExtensionFolder, "/") {
-			fmt.Printf("✅ Valid extension folder: %s\n", config.ExtensionFolder)
-			break
-		} else {
-			fmt.Println("❌ Invalid extension folder name")
-			fmt.Println("   Please enter a simple folder name (no paths, colons, or slashes)")
-		}
+	if !validateTargetDir(config.TargetDir) {
+		fmt.Println("Target directory is invalid")
+		return false
 	}
 
 	config.JavaPath = findJava11Path()
 	if config.JavaPath == "" {
-		fmt.Println("❌ Java 11 not found")
+		fmt.Println("Java 11 not found")
 		return false
 	}
 
-	fmt.Printf("✅ Java 11: %s\n", config.JavaPath)
+	fmt.Printf("Source: %s\n", config.SourceDir)
+	fmt.Printf("Target: %s\n", config.TargetDir)
+	fmt.Printf("Extension: %s\n", config.ExtensionFolder)
+	fmt.Printf("Java 11: %s\n", config.JavaPath)
 	fmt.Println()
-
-	saveConfig(*config)
-	fmt.Println("💾 Configuration saved for next time")
-	fmt.Println()
-
 	return true
 }
 
@@ -170,11 +102,11 @@ func validateTargetDir(dir string) bool {
 	sfs2xCoreJar := filepath.Join(libDir, "sfs2x-core.jar")
 
 	if _, err := os.Stat(sfs2xJar); os.IsNotExist(err) {
-		fmt.Printf("⚠️ Warning: sfs2x.jar not found at %s\n", sfs2xJar)
+		fmt.Printf("Warning: sfs2x.jar not found at %s\n", sfs2xJar)
 	}
 
 	if _, err := os.Stat(sfs2xCoreJar); os.IsNotExist(err) {
-		fmt.Printf("⚠️ Warning: sfs2x-core.jar not found at %s\n", sfs2xCoreJar)
+		fmt.Printf("Warning: sfs2x-core.jar not found at %s\n", sfs2xCoreJar)
 	}
 
 	return true

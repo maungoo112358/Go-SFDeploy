@@ -1,8 +1,11 @@
 {
-  "source_dir": "C:\\Projects\\WorkSpace\\FishServer\\FishyGame",
-  "target_dir": "C:\\Users\\Slint\\SmartFoxServer_2X",
-  "extension_folder": "SlotZone",
   "java_path": "C:\\Program Files\\Java\\jdk-11\\bin",
-  "json_source_dir": "C:\\Projects\\WorkSpace\\FishServer\\FishyGame\\src\\game\\slot\\jsons",
-  "deploy_json_files": ["BeachDay", "Olympus", "SugarRush", "KrakenQueen", "FuXingGaoZhao", "FongSheng", "Santa"]
+  "source_dir": "C:\\Projects\\WorkSpace\\Spooky-Business\\spooky-business-server",
+  "target_dir": "C:\\Users\\Slint\\SmartFoxServer_2X",
+  "extension_folder": "SpookZoneSFSExtension",
+  "extension_file": "SpookZoneSFSExtension.jar",
+  "common_file": "SpookyCommon.jar",
+  "common_folder": "common",
+  "json_source_dir": "",
+  "deploy_json_files": []
 }
